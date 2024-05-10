@@ -44,7 +44,6 @@ public class AmortisationService {
         schedule.setTotalPayments(roundedTotalPayments);
         schedule.setTotalInterest(roundedTotalInterest);
 
-        System.out.println(schedule);
         return schedule;
     }
 
@@ -95,6 +94,7 @@ public class AmortisationService {
         BigDecimal interestRate = details.getInterestRate().divide(BigDecimal.valueOf(12));
         int numberOfPayments = details.getNumberOfPayments();
 
+
         BigDecimal monthlyPayment = details.isIncludeBalloonPayment()
                 ? calculateMonthlyPaymentWithBalloon(loanAmount, details.getBalloonPayment(), interestRate, numberOfPayments)
                 : calculateMonthlyPayment(loanAmount, interestRate, numberOfPayments);
@@ -106,24 +106,23 @@ public class AmortisationService {
             BigDecimal interest = remainingBalance.multiply(interestRate);
             BigDecimal principal = monthlyPayment.subtract(interest);
 
+
+            BigDecimal paymentPlusInterest = principal.add(interest);
+
             remainingBalance = remainingBalance.subtract(principal);
-
-            // Perform calculations without setting scale
-            roundingError = roundingError.add(principal.add(interest).subtract(monthlyPayment));
-
-            // Set scale only before adding to entry
+            roundingError = roundingError.add(paymentPlusInterest.subtract(monthlyPayment));
             principal = principal.setScale(2, BigDecimal.ROUND_HALF_EVEN);
             interest = interest.setScale(2, BigDecimal.ROUND_HALF_EVEN);
             remainingBalance = remainingBalance.setScale(2, BigDecimal.ROUND_HALF_EVEN);
             monthlyPayment = monthlyPayment.setScale(2, BigDecimal.ROUND_HALF_EVEN);
 
-            // Adjust last payment for loans with or without balloon payment
             if (i == numberOfPayments) {
-                principal = principal.add(roundingError); // Account for rounding errors
+                principal = principal.add(roundingError).setScale(2, BigDecimal.ROUND_HALF_EVEN);
                 if (details.isIncludeBalloonPayment()) {
-                    principal = principal.subtract(details.getBalloonPayment()); // Adjust for balloon payment
+                    remainingBalance = remainingBalance.setScale(2, BigDecimal.ROUND_DOWN);
+
                 } else {
-                    monthlyPayment = monthlyPayment.add(remainingBalance); // Adjust for remaining balance
+                    monthlyPayment = monthlyPayment.add(remainingBalance);
                     remainingBalance = BigDecimal.ZERO;
                 }
             }
