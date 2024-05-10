@@ -19,23 +19,21 @@ public class AmortisationService {
         AmortisationDetails schedule = new AmortisationDetails();
         schedule.setLoanDetails(details);
 
-        // Calculate core values
         BigDecimal loanAmount = details.getLoanAmount().subtract(details.getDeposit());
         BigDecimal interestRatePerPeriod = details.getInterestRate().divide(BigDecimal.valueOf(12));
         int numberOfPayments = details.getNumberOfPayments();
 
-        // Determine monthly payment based on balloon payment inclusion
+        // Determine monthly payment based on whether they have a balloon payment or not
         BigDecimal monthlyPayment = details.isIncludeBalloonPayment()
                 ? calculateMonthlyPaymentWithBalloon(loanAmount, details.getBalloonPayment(), interestRatePerPeriod, numberOfPayments)
                 : calculateMonthlyPayment(loanAmount, interestRatePerPeriod, numberOfPayments);
 
         schedule.setMonthlyPayment(monthlyPayment.setScale(2, BigDecimal.ROUND_HALF_EVEN));
 
-        // Build amortization schedule
+        // building the amortization schedule
         List<AmortisationEntry> entries = buildSchedule(details);
         schedule.setSchedule(entries);
 
-        // Calculate total interest and payments with rounding correction
         BigDecimal totalInterest = entries.stream().map(AmortisationEntry::getInterest).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal totalPayments = monthlyPayment.multiply(BigDecimal.valueOf(entries.size()));
         BigDecimal roundedTotalInterest = totalInterest.setScale(2, BigDecimal.ROUND_HALF_EVEN);
